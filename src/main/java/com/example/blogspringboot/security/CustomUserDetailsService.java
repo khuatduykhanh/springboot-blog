@@ -17,7 +17,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
-
     @Autowired
     private UserRepository userRepository;
     @Override // hàm này dùng để chuyển người dùng từ database sang kiểu User trong Spring boot

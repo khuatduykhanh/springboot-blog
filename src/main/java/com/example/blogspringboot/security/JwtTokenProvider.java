@@ -1,6 +1,5 @@
 package com.example.blogspringboot.security;
 
-
 import com.example.blogspringboot.exception.BlogAPIException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
@@ -12,9 +11,9 @@ import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
-
 @Component
 public class JwtTokenProvider {
+
     @Value("${app.jwt-secret}")
     private String jwtSecrect;
     @Value("${app-jwt-expiration-milliseconds}")
@@ -67,5 +66,4 @@ public class JwtTokenProvider {
             throw new BlogAPIException(HttpStatus.BAD_REQUEST, "JWT claims string is empty.");
         }
     }
-
 }

@@ -18,6 +18,5 @@ public class PostDto {
     @NotEmpty
     @Size(min = 10, message = "content should have at least 10 characters")
     private String content;
-    @NotEmpty
     private Set<CommentDto> comments;
 }
