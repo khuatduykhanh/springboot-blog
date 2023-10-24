@@ -8,6 +8,8 @@ import com.example.blogspringboot.entity.User;
 import com.example.blogspringboot.repository.RoleRepository;
 import com.example.blogspringboot.repository.UserRepository;
 import com.example.blogspringboot.security.JwtTokenProvider;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
 import java.util.Collections;
 
 @RestController
@@ -53,14 +56,14 @@ public class AuthController {
 
         // get token form tokenProvider
         String token = tokenProvider.generateToken(authentication);
-        System.out.println(token);
-        return  ResponseEntity.ok(new JWTAuthResponse(token));
+        String refreshToken = tokenProvider.generateRefreshToken(authentication);
+        return  ResponseEntity.ok(new JWTAuthResponse(token,refreshToken));
     }
 
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@RequestBody SigninDto signinDto){
         if(userRepository.existsByUsername(signinDto.getUsername())){
-            return new ResponseEntity<>("username is already taken",HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("username is already taken", HttpStatus.BAD_REQUEST);
         }
         if(userRepository.existsByEmail(signinDto.getUsername())){
             return new ResponseEntity<>("email is already taken",HttpStatus.BAD_REQUEST);
@@ -73,7 +76,16 @@ public class AuthController {
         Role role = roleRepository.findByName("ROLE_ADMIN").get();
         user.setRoles(Collections.singleton(role));
         userRepository.save(user);
-        return new ResponseEntity<>("User rigistered successfully", HttpStatus.CREATED);
 
+        return new ResponseEntity<>("User rigistered successfully", HttpStatus.CREATED);
     }
+////    @PostMapping("/refresh-token")
+////    public void refreshToken(
+////            HttpServletRequest request,
+////            HttpServletResponse response
+////    ) throws IOException {
+////        service.refreshToken(request, response);
+////    }
+
+
 }

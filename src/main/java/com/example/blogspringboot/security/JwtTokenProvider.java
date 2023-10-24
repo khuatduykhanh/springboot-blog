@@ -7,17 +7,24 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
+
 @Component
 public class JwtTokenProvider {
 
     @Value("${app.jwt-secret}")
     private String jwtSecrect;
     @Value("${app-jwt-expiration-milliseconds}")
-    private String jwtExpirationMs;
+    private int jwtExpirationMs;
+    @Value("${app-jwtRefreshExpirationMs}")
+    private int refreshExpiration;
     public String generateToken(Authentication authentication){
         String username = authentication.getName();
 
@@ -48,6 +55,28 @@ public class JwtTokenProvider {
                 Decoders.BASE64.decode(jwtSecrect)
         );
     }
+    public String generateRefreshToken(
+            Authentication authentication
+    ) {
+
+        return buildToken(new HashMap<>(), authentication, refreshExpiration);
+    }
+    private String buildToken(
+            Map<String, Object> extraClaims,
+            Authentication authentication,
+            long expiration
+    ) {
+        String username = authentication.getName();
+        return Jwts
+                .builder()
+                .setClaims(extraClaims)
+                .setSubject(username)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(key())
+                .compact();
+    }
+
 
     public boolean validateToken(String token){
         try{
