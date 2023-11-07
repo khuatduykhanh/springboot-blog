@@ -2,32 +2,32 @@ package com.example.blogspringboot.controller;
 
 import com.example.blogspringboot.dto.JWTAuthResponse;
 import com.example.blogspringboot.dto.LoginDto;
+import com.example.blogspringboot.dto.RefreshTokenReq;
 import com.example.blogspringboot.dto.SigninDto;
+import com.example.blogspringboot.entity.RefreshToken;
 import com.example.blogspringboot.entity.Role;
 import com.example.blogspringboot.entity.User;
+import com.example.blogspringboot.exception.BlogAPIException;
 import com.example.blogspringboot.repository.RoleRepository;
 import com.example.blogspringboot.repository.UserRepository;
 import com.example.blogspringboot.security.JwtTokenProvider;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import com.example.blogspringboot.security.RefreshTokenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.IOException;
 import java.util.Collections;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 public class AuthController {
 
     @Autowired
@@ -43,6 +43,8 @@ public class AuthController {
 
     @Autowired
     private JwtTokenProvider tokenProvider;
+    @Autowired
+    private RefreshTokenService refreshTokenService;
 
     @PostMapping("/signin")
     public ResponseEntity<JWTAuthResponse> authenticateUser(@RequestBody LoginDto loginDto){
@@ -52,12 +54,13 @@ public class AuthController {
                         loginDto.getPassword()
                 ));
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        // get token form tokenProvider
-        String token = tokenProvider.generateToken(authentication);
-        String refreshToken = tokenProvider.generateRefreshToken(authentication);
-        return  ResponseEntity.ok(new JWTAuthResponse(token,refreshToken));
+        if (authentication.isAuthenticated()) {
+            String token = tokenProvider.generateToken(loginDto.getUsernameOrEmail());
+            String refreshToken = refreshTokenService.createRefreshToken(loginDto.getUsernameOrEmail(),authentication);
+            return  ResponseEntity.ok(new JWTAuthResponse(token,refreshToken));
+        } else {
+            throw new BlogAPIException(HttpStatus.BAD_REQUEST, "invalid user request !");
+        }
     }
 
     @PostMapping("/signup")
@@ -79,13 +82,19 @@ public class AuthController {
 
         return new ResponseEntity<>("User rigistered successfully", HttpStatus.CREATED);
     }
-////    @PostMapping("/refresh-token")
-////    public void refreshToken(
-////            HttpServletRequest request,
-////            HttpServletResponse response
-////    ) throws IOException {
-////        service.refreshToken(request, response);
-////    }
+
+    @PostMapping("/refreshToken")
+    public ResponseEntity<JWTAuthResponse> refreshToken(@RequestBody RefreshTokenReq refreshTokenRequest) {
+         return refreshTokenService.findByToken(refreshTokenRequest.getToken())
+                .map(refreshTokenService::verifyExpiration)
+                .map(RefreshToken::getUserInfo)
+                .map(userInfo -> {
+                     String token = tokenProvider.generateToken(userInfo.getUsername());
+                    return ResponseEntity.ok(new JWTAuthResponse(token,refreshTokenRequest.getToken()));
+                }).orElseThrow(() -> new RuntimeException(
+                        "Refresh token is not in database!"));
+
+    }
 
 
 }

@@ -25,8 +25,7 @@ public class JwtTokenProvider {
     private int jwtExpirationMs;
     @Value("${app-jwtRefreshExpirationMs}")
     private int refreshExpiration;
-    public String generateToken(Authentication authentication){
-        String username = authentication.getName();
+    public String generateToken(String username){
 
         Date currentDate = new Date();
 
@@ -54,27 +53,6 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(
                 Decoders.BASE64.decode(jwtSecrect)
         );
-    }
-    public String generateRefreshToken(
-            Authentication authentication
-    ) {
-
-        return buildToken(new HashMap<>(), authentication, refreshExpiration);
-    }
-    private String buildToken(
-            Map<String, Object> extraClaims,
-            Authentication authentication,
-            long expiration
-    ) {
-        String username = authentication.getName();
-        return Jwts
-                .builder()
-                .setClaims(extraClaims)
-                .setSubject(username)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(key())
-                .compact();
     }
 
 
